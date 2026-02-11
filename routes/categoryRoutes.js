@@ -34,6 +34,6 @@ router.post(
   headOfficeOnly,
   categoryController.getOneCategory
 );
-router.get("/all", authMiddleware, categoryController.getAllCategories);
+router.get("/all", categoryController.getAllCategories);
 
 module.exports = router;

@@ -11,10 +11,11 @@ class AnalyticsService {
       include: [
         {
           model: Order,
-          where: { is_deleted: false },
+          where: { is_deleted: false, status: "Delivered" },
           attributes: [],
         },
       ],
+      where: { payment_status: "completed", is_deleted: false },
       attributes: [
         [
           sequelize.fn(
@@ -72,7 +73,7 @@ class AnalyticsService {
   }
 
   async getTotalOrders() {
-    const totalOrders = await Order.count({ where: { is_deleted: false } });
+    const totalOrders = await Order.count({ where: { is_deleted: false, status: "Delivered" } });
     return totalOrders;
   }
 
@@ -81,10 +82,11 @@ class AnalyticsService {
       include: [
         {
           model: Order,
-          where: { is_deleted: false },
+          where: { is_deleted: false, status: "Delivered" },
           attributes: [],
         },
       ],
+      where: { payment_status: "completed", is_deleted: false },
     });
     return totalRevenue || 0;
   }
@@ -94,7 +96,7 @@ class AnalyticsService {
       include: [
         {
           model: Order,
-          where: { is_deleted: false },
+          where: { is_deleted: false, status: "Delivered" },
           attributes: [], // important: don't select Order columns
           include: [
             {
@@ -136,6 +138,11 @@ class AnalyticsService {
   async getMostPopularItems() {
     const mostPopularItems = await OrderItem.findAll({
       include: [
+        {
+          model: Order,
+          where: { is_deleted: false, status: "Delivered" },
+          attributes: [],
+        },
         {
           model: Product,
           attributes: ["name"],

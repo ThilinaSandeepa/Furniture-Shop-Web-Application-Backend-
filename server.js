@@ -48,13 +48,21 @@ app.use("/api/email", emailRoutes);
 app.use("/api/stats", statsRoutes);
 app.use("/api/analytics", analyticsRoutes);
 
+const syncOptions = process.env.DB_SYNC_ALTER === "true" ? { alter: true } : {};
+
 sequelize
-  .sync({ alter: false })
+  .sync(syncOptions)
   .then(() => {
-    console.log("Database synced successfully with auto-update.");
+    if (syncOptions.alter) {
+      console.log("Database synced successfully with auto-update.");
+    } else {
+      console.log("Database synced successfully.");
+    }
   })
   .catch((error) => {
-    console.error("Error syncing database:", error);
+    console.error("Error syncing database:", error.message);
+    // Log but don't crash on sync errors - the server can still function
+    console.error("WARNING: Database sync failed. Please verify your database schema.");
   });
 
 app.listen(PORT, () => {

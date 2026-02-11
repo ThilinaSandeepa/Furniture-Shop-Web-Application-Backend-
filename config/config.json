@@ -1,8 +1,8 @@
 {
   "development": {
     "username": "root",
-    "password": 1234,
-    "database": "kavindu_ecommerce",
+    "password": "root",
+    "database": "thilina_ecommerce",
     "host": "127.0.0.1",
     "dialect": "mysql"
   },

@@ -12,7 +12,7 @@ const stats = {
   },
 
   async getTotalOrders() {
-    return await Order.count({ where: { is_deleted: false } });
+    return await Order.count({ where: { is_deleted: false, status: "Delivered" } });
   },
 
   async getTotalMonthlyRevenue() {
@@ -42,7 +42,7 @@ const stats = {
         {
           model: Order,
           attributes: [],
-          where: { is_deleted: false },
+          where: { is_deleted: false, status: "Delivered" },
         },
       ],
       where: {
@@ -79,7 +79,7 @@ const stats = {
         {
           model: Order,
           attributes: [],
-          where: { is_deleted: false },
+          where: { is_deleted: false, status: "Delivered" },
         },
       ],
       group: ["product_id", "Product.id"],
@@ -92,6 +92,10 @@ const stats = {
       total_orders: item.getDataValue("total_orders"),
       total_revenue: item.getDataValue("total_revenue"),
     }));
+  },
+
+  async getPendingOrders() {
+    return await Order.count({ where: { is_deleted: false, status: "Pending" } });
   },
 };
 

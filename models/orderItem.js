@@ -32,8 +32,12 @@ OrderItem.init(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
+    unit_price: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: false,
+    },
     subtotal_price: {
-      type: DataTypes.DECIMAL(10, 2),
+      type: DataTypes.DECIMAL(12, 2),
       allowNull: false,
     },
     is_deleted: {
