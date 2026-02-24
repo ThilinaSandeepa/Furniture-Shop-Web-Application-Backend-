@@ -6,13 +6,15 @@ const Product = require("../models/product");
 const Payment = require("../models/payment");
 const sequelize = require("../config/database");
 
+const ACTIVE_ORDER_STATUSES = ["Placed", "Pending", "Processing", "Shipped"];
+
 const stats = {
   async getTotalCustomers() {
     return await User.count({ where: { role: "User", is_deleted: false } });
   },
 
   async getTotalOrders() {
-    return await Order.count({ where: { is_deleted: false, status: "Delivered" } });
+    return await Order.count({ where: { is_deleted: false } });
   },
 
   async getTotalMonthlyRevenue() {
@@ -51,7 +53,11 @@ const stats = {
             sequelize.fn("YEAR", sequelize.col("Payment.createdAt")),
             currentYear
           ),
-          { payment_status: "completed" },
+          sequelize.where(
+            sequelize.fn("LOWER", sequelize.col("Payment.payment_status")),
+            "completed"
+          ),
+          { is_deleted: false },
         ],
       },
       group: [sequelize.fn("MONTH", sequelize.col("Payment.createdAt"))],
@@ -95,7 +101,38 @@ const stats = {
   },
 
   async getPendingOrders() {
-    return await Order.count({ where: { is_deleted: false, status: "Pending" } });
+    return await Order.count({
+      where: {
+        is_deleted: false,
+        status: {
+          [Op.in]: ACTIVE_ORDER_STATUSES,
+        },
+      },
+    });
+  },
+
+  async getProcessingOrders() {
+    return await Order.count({
+      where: { is_deleted: false, status: "Processing" },
+    });
+  },
+
+  async getShippedOrders() {
+    return await Order.count({
+      where: { is_deleted: false, status: "Shipped" },
+    });
+  },
+
+  async getCancelledOrders() {
+    return await Order.count({
+      where: { is_deleted: false, status: "Cancelled" },
+    });
+  },
+
+  async getDeliveredOrders() {
+    return await Order.count({
+      where: { is_deleted: false, status: "Delivered" },
+    });
   },
 };
 

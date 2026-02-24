@@ -3,10 +3,13 @@ const Order = require("../models/order");
 const User = require("../models/user");
 const OrderItem = require("../models/orderItem");
 const Product = require("../models/product");
+const { Op } = require("sequelize");
 const sequelize = require("../config/database");
 
 class AnalyticsService {
   async getMonthlyRevenue() {
+    const currentYear = new Date().getFullYear();
+
     const payments = await Payment.findAll({
       include: [
         {
@@ -15,25 +18,24 @@ class AnalyticsService {
           attributes: [],
         },
       ],
-      where: { payment_status: "completed", is_deleted: false },
-      attributes: [
-        [
-          sequelize.fn(
-            "DATE_FORMAT",
-            sequelize.col("Payment.createdAt"),
-            "%Y-%m"
+      where: {
+        is_deleted: false,
+        [Op.and]: [
+          sequelize.where(
+            sequelize.fn("YEAR", sequelize.col("Payment.createdAt")),
+            currentYear
           ),
-          "month",
+          sequelize.where(
+            sequelize.fn("LOWER", sequelize.col("Payment.payment_status")),
+            "completed"
+          ),
         ],
+      },
+      attributes: [
+        [sequelize.fn("MONTH", sequelize.col("Payment.createdAt")), "month"],
         [sequelize.fn("SUM", sequelize.col("amount")), "revenue"],
       ],
-      group: [
-        sequelize.fn(
-          "DATE_FORMAT",
-          sequelize.col("Payment.createdAt"),
-          "%Y-%m"
-        ),
-      ],
+      group: [sequelize.fn("MONTH", sequelize.col("Payment.createdAt"))],
       raw: true,
     });
 
@@ -58,7 +60,10 @@ class AnalyticsService {
     });
 
     payments.forEach((payment) => {
-      const month = months[new Date(payment.month + "-01").getMonth()];
+      const monthIndex = Number(payment.month) - 1;
+      const month = months[monthIndex];
+      if (!month) return;
+
       monthlyRevenue[month] = parseFloat(payment.revenue);
     });
 
@@ -73,7 +78,7 @@ class AnalyticsService {
   }
 
   async getTotalOrders() {
-    const totalOrders = await Order.count({ where: { is_deleted: false, status: "Delivered" } });
+    const totalOrders = await Order.count({ where: { is_deleted: false } });
     return totalOrders;
   }
 
@@ -86,7 +91,15 @@ class AnalyticsService {
           attributes: [],
         },
       ],
-      where: { payment_status: "completed", is_deleted: false },
+      where: {
+        is_deleted: false,
+        [Op.and]: [
+          sequelize.where(
+            sequelize.fn("LOWER", sequelize.col("Payment.payment_status")),
+            "completed"
+          ),
+        ],
+      },
     });
     return totalRevenue || 0;
   }
