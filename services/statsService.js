@@ -1,12 +1,9 @@
-const { Op } = require("sequelize");
 const User = require("../models/user");
 const Order = require("../models/order");
 const OrderItem = require("../models/orderItem");
 const Product = require("../models/product");
-const Payment = require("../models/payment");
+const Category = require("../models/category");
 const sequelize = require("../config/database");
-
-const ACTIVE_ORDER_STATUSES = ["Placed", "Pending", "Processing", "Shipped"];
 
 const stats = {
   async getTotalCustomers() {
@@ -35,32 +32,19 @@ const stats = {
     ];
     let monthlyRevenue = Array(12).fill(0);
 
-    const revenueData = await Payment.findAll({
+    const revenueData = await Order.findAll({
       attributes: [
-        [sequelize.fn("MONTH", sequelize.col("Payment.createdAt")), "month"],
-        [sequelize.fn("SUM", sequelize.col("amount")), "total"],
-      ],
-      include: [
-        {
-          model: Order,
-          attributes: [],
-          where: { is_deleted: false, status: "Delivered" },
-        },
+        [sequelize.fn("MONTH", sequelize.col("order_date")), "month"],
+        [sequelize.fn("SUM", sequelize.col("total_price")), "total"],
       ],
       where: {
-        [Op.and]: [
-          sequelize.where(
-            sequelize.fn("YEAR", sequelize.col("Payment.createdAt")),
-            currentYear
-          ),
-          sequelize.where(
-            sequelize.fn("LOWER", sequelize.col("Payment.payment_status")),
-            "completed"
-          ),
-          { is_deleted: false },
-        ],
+        is_deleted: false,
+        order_date: sequelize.where(
+          sequelize.fn("YEAR", sequelize.col("order_date")),
+          currentYear
+        ),
       },
-      group: [sequelize.fn("MONTH", sequelize.col("Payment.createdAt"))],
+      group: [sequelize.fn("MONTH", sequelize.col("order_date"))],
     });
 
     revenueData.forEach(({ dataValues }) => {
@@ -85,7 +69,7 @@ const stats = {
         {
           model: Order,
           attributes: [],
-          where: { is_deleted: false, status: "Delivered" },
+          where: { is_deleted: false },
         },
       ],
       group: ["product_id", "Product.id"],
@@ -100,13 +84,53 @@ const stats = {
     }));
   },
 
+  async getCategoryPerformance() {
+    const deliveredOrderItems = await OrderItem.findAll({
+      attributes: ["quantity"],
+      include: [
+        {
+          model: Product,
+          attributes: ["id"],
+          where: { is_deleted: false },
+          include: [
+            {
+              model: Category,
+              attributes: ["name"],
+              where: { is_deleted: false },
+            },
+          ],
+        },
+        {
+          model: Order,
+          attributes: [],
+          where: { is_deleted: false },
+        },
+      ],
+      where: { is_deleted: false },
+    });
+
+    const unitsByCategory = deliveredOrderItems.reduce((acc, item) => {
+      const categoryName = item?.Product?.Category?.name || "Uncategorized";
+      const quantity = parseInt(item.quantity || 0, 10);
+
+      if (!acc[categoryName]) {
+        acc[categoryName] = 0;
+      }
+
+      acc[categoryName] += quantity;
+      return acc;
+    }, {});
+
+    return Object.entries(unitsByCategory)
+      .map(([name, total_units]) => ({ name, total_units }))
+      .sort((a, b) => b.total_units - a.total_units);
+  },
+
   async getPendingOrders() {
     return await Order.count({
       where: {
         is_deleted: false,
-        status: {
-          [Op.in]: ACTIVE_ORDER_STATUSES,
-        },
+        status: "Pending",
       },
     });
   },
