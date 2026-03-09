@@ -50,7 +50,7 @@ const sendEmailService = {
   async sendEmail(name, email, message) {
     const mailOptions = {
       from: process.env.EMAIL_USERNAME,
-      to: "vishalsandakelum20@gmail.com",
+      to: "thilinasandeepa1605@gmail.com",
       subject: "Contact Form Submission",
       html: contactEmailTemplate(name, email, message),
     };
